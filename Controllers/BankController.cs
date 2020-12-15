@@ -32,7 +32,9 @@ namespace TheBankAPI.Controllers
             var selectCommand = new SqlCommand(sql, databaseConnection);
             var reader = selectCommand.ExecuteReader();
             if (!reader.HasRows)
-            { return result; }
+            {
+                return result;
+            }
             while (reader.Read())
             {
                 result.Add(new BankUser(reader.GetInt32(0), reader.GetDateTime(1), reader.GetDateTime(2)));
@@ -71,17 +73,16 @@ namespace TheBankAPI.Controllers
             }
             else
             {
-                List<string> data = new List<string>();
-                data.Add(bankUser.Amount.ToString());
-                data.Add(id.ToString());
+                //List<string> data = new List<string>();
+                //data.Add(bankUser.Amount.ToString());
+                //data.Add(id.ToString());
 
-                var response =  client.PostAsync("InterestRateFunctionURL", bankUser.Amount , id);
+                var response =  client.PostAsync("InterestRateFunctionURL", bankUser.Amount);
                 
                 
-                var sql = "UPDATE Account SET Amount = @Amount WHERE id = @id";
-                SqlParameter[] p = new SqlParameter[2];
+                var sql = "UPDATE Account SET Amount = @Amount WHERE id =" + id;
+                SqlParameter[] p = new SqlParameter[0];
                 p[0] = new SqlParameter("@Amount", response);
-                p[1] = new SqlParameter("@id", id);
 
                 var databaseConnection = new SqlConnection(conn);
                 databaseConnection.Open();
@@ -178,12 +179,11 @@ namespace TheBankAPI.Controllers
         [HttpPut("{id}")]
         public void Put(int id, BankUser bankUserInput)
         {
-            var sql = "UPDATE BankUser SET UserId = @UserId, CreatedAt = @CreatedAt, ModifiedAt = @ModifiedAt WHERE id = @id";
-            SqlParameter[] p = new SqlParameter[4];
+            var sql = "UPDATE BankUser SET UserId = @UserId, CreatedAt = @CreatedAt, ModifiedAt = @ModifiedAtWHERE id =" + id;
+            SqlParameter[] p = new SqlParameter[3];
             p[0] = new SqlParameter("@UserId", bankUserInput.UserId);
             p[1] = new SqlParameter("@CreatedAt", bankUserInput.CreatedAt);
             p[2] = new SqlParameter("@ModifiedAt", bankUserInput.ModifiedAt);
-            p[3] = new SqlParameter("@id", id);
 
             var databaseConnection = new SqlConnection(conn);
             databaseConnection.Open();
@@ -207,6 +207,26 @@ namespace TheBankAPI.Controllers
 
         }
 
+        //PUT api/<BankUserController>
+        [HttpPut("withdrawl-money")]
+        public void Put(int Amount, id)
+        {
+            try
+            {
+                var sql = "UPDATE Account SET Amount = Amount -" + Amount + " WHERE id =" + id;
+
+                var databaseConnection = new SqlConnection(conn);
+                databaseConnection.Open();
+
+                var selectCommand = new SqlCommand(sql, databaseConnection);
+                selectCommand.ExecuteNonQuery();
+            }
+            catch (Exception e)
+            {
+                throw;
+            }
+        }
+
         //POST api/<BankUserController>
         [HttpPost("InterestRate")]
         public void Post(int Amount)
@@ -216,27 +236,35 @@ namespace TheBankAPI.Controllers
 
         //POST api/<BankUserController>
         [HttpPost("Loan")]
-        public void Post(int Amount)
+        public void Post(int loanAmount)
         {
             List<int> AccountList = new List<int>();
 
-            var sql = "SELECT Amount FROM Account where id =" + id;
+            var sql = "SELECT Amount FROM Account WHERE id =" + id;
 
             var databaseConnection = new SqlConnection(conn);
             databaseConnection.Open();
             var selectCommand = new SqlCommand(sql, databaseConnection);
             var reader = selectCommand.ExecuteReader();
             if (!reader.HasRows)
-            { return result; }
+            {
+                return AccountList;
+            }
             while (reader.Read())
             {
-                AccountList.Add((reader.GetInt32(0));
+                accountAmount = reader.GetInt32(0);
+                //AccountList.Add((reader.GetInt32(0));
             }
-            return result;
+            return AccountList;
 
-            if (Amount > )
+            calculatedAmount = loanAmount * 0.75; 
+            if (loanAmount > accountAmount)
             {
-                
+                StatusCode(403);
+            }
+            else
+            {
+                StatusCode(200);
             }
         }
 }
