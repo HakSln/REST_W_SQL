@@ -15,61 +15,68 @@ namespace TheBankAPI.Controllers
     public class BankController : ControllerBase
     {
         private static HttpClient client = new HttpClient();
-        private const string conn = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=BankDB;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
+
+        private const string conn =
+            "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=BankDB;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
+
         //static List<BankUser> BankUsers;
-        const currentTime = DateTime.Now();
+        DateTime currentTime = DateTime.Now;
 
         // GET: api/<BankController>
         [HttpGet("BankUsers")]
         public List<BankUser> Get()
         {
             var result = new List<BankUser>();
-            SqlConnection conn = new SqlConnection();
-            const string sql = "SELECT * FROM BankUser";
+            string sql = "SELECT * FROM BankUser";
 
-            var databaseConnection = new SqlConnection(conn);
-            databaseConnection.Open();
-            var selectCommand = new SqlCommand(sql, databaseConnection);
+            SqlConnection connection = new SqlConnection(conn);
+            connection.Open();
+            var selectCommand = new SqlCommand(sql, connection);
             var reader = selectCommand.ExecuteReader();
             if (!reader.HasRows)
             {
                 return result;
             }
+
             while (reader.Read())
             {
                 result.Add(new BankUser(reader.GetInt32(0), reader.GetDateTime(1), reader.GetDateTime(2)));
             }
+
             return result;
         }
 
         // GET: api/<BankController>
         [HttpGet("Deposits")]
-        public List<Deposit> Get(id)
+        public List<Deposit> Get(int id)
         {
             var result = new List<Deposit>();
-            SqlConnection conn = new SqlConnection();
-            const string sql = "SELECT * FROM Deposit WHERE id =" + id;
+            string sql = "SELECT * FROM Deposit WHERE id =" + id;
 
-            var databaseConnection = new SqlConnection(conn);
-            databaseConnection.Open();
-            var selectCommand = new SqlCommand(sql, databaseConnection);
+            SqlConnection connection = new SqlConnection(conn);
+            connection.Open();
+            var selectCommand = new SqlCommand(sql, connection);
             var reader = selectCommand.ExecuteReader();
             if (!reader.HasRows)
-            { return result; }
+            {
+                return result;
+            }
+
             while (reader.Read())
             {
-                result.Add(new BankUser(reader.GetInt32(0), reader.GetDateTime(1), reader.GetInt32(2)));
+                result.Add(new Deposit(reader.GetInt32(0), reader.GetDateTime(1), reader.GetInt32(2)));
             }
+
             return result;
         }
 
         // POST: api/<BankController>
         [HttpPost("add-deposit")]
-        public void Post(BankUser bankUser, int id)
+        public void addDeposit(Account account, int id)
         {
-            if (bankUser.Amount == null | bankUser.Amount < 0)
+            if (account.Amount == null | account.Amount < 0)
             {
-                 StatusCode(404);
+                StatusCode(404);
             }
             else
             {
@@ -77,28 +84,28 @@ namespace TheBankAPI.Controllers
                 //data.Add(bankUser.Amount.ToString());
                 //data.Add(id.ToString());
 
-                var response =  client.PostAsync("InterestRateFunctionURL", bankUser.Amount);
+                //var response = client.PostAsync("InterestRateFunctionURL", bankUser.Amount);
+                int response = InterestRate(account.Amount);
                 
-                
+
                 var sql = "UPDATE Account SET Amount = @Amount WHERE id =" + id;
                 SqlParameter[] p = new SqlParameter[0];
                 p[0] = new SqlParameter("@Amount", response);
 
-                var databaseConnection = new SqlConnection(conn);
-                databaseConnection.Open();
+                SqlConnection connection = new SqlConnection(conn);
+                connection.Open();
 
-                var selectCommand = new SqlCommand(sql, databaseConnection);
+                var selectCommand = new SqlCommand(sql, connection);
 
-         
-
-                public void InsertIntoDepoTable()
+                void InsertIntoDepoTable()
                 {
-
-                    var sqlDepo = "INSERT INTO Deposit (id, UserId, CreatedAt, Amount )" +
-                                  $"VALUES (NULL, '{id}', '{currentTime}', '{calculatedAmount}')";
+                    string sqlDepo = "INSERT INTO Deposit (id, UserId, CreatedAt, Amount )" +
+                                  $"VALUES (NULL, '{id}', '{currentTime}', '{response}')";
 
                     selectCommand.ExecuteNonQuery();
                 }
+
+                InsertIntoDepoTable();
 
                 StatusCode(200);
             }
@@ -106,35 +113,26 @@ namespace TheBankAPI.Controllers
 
         // POST: api/<BankController>
         [HttpPost("create-loan")]
-        public void Post(Account account, int id)
+        public void createLoan(Account account, int id)
         {
-            if (StatusCode(200))
-            {
-                try
+                 //var response = client.PostAsync("LoanFunctionURL", account.Amount);
+                bool response = LoanFunc(account.Amount, id);
+
+                if (response == false)
                 {
-                    var response = client.PostAsync("LoanFunctionURL", account.Amount);
-                    
-                   
+                    string sql = "INSERT INTO Loan (Id, UserId, CreatedAt, ModifiedAt, Amount)" +
+                                 $"VALUES (NULL, '{id}', '{currentTime}', '{currentTime}', '{response}')";
 
-                    var sql = "INSERT INTO Loan (Id, UserId, CreatedAt, ModifiedAt, Amount)" +
-                              $"VALUES (NULL, '{id}', '{currentTime}', '{currentTime}', '{response}')";
+                    SqlConnection connection = new SqlConnection(conn);
+                    connection.Open();
 
-                    var databaseConnection = new SqlConnection(conn);
-                    databaseConnection.Open();
-
-                    var selectCommand = new SqlCommand(sql, databaseConnection);
+                    var selectCommand = new SqlCommand(sql, connection);
                     selectCommand.ExecuteNonQuery();
-
                 }
-                catch (Exception e)
+                else
                 {
-                    throw;
+                    StatusCode(403);
                 }
-            }
-            else
-            {
-                StatusCode(403);
-            }
         }
 
         // GET api/<BankController>/5
@@ -145,13 +143,16 @@ namespace TheBankAPI.Controllers
 
             string sql = "SELECT * FROM BankUser WHERE id =" + id;
 
-            var databaseConnection = new SqlConnection(conn);
-            databaseConnection.Open();
-            var selectCommand = new SqlCommand(sql, databaseConnection);
+            SqlConnection connection = new SqlConnection(conn);
+            connection.Open();
+            var selectCommand = new SqlCommand(sql, connection);
             var reader = selectCommand.ExecuteReader();
 
             if (!reader.HasRows)
-            { return myBankUser; }
+            {
+                return myBankUser;
+            }
+
             while (reader.Read())
             {
                 myBankUser = new BankUser(reader.GetInt32(0), reader.GetDateTime(1), reader.GetDateTime(2));
@@ -165,13 +166,13 @@ namespace TheBankAPI.Controllers
         [HttpPost]
         public void Post(BankUser myBankUser)
         {
-            var sql = "INSERT INTO BankUser (Id, UserId, CreatedAt, ModifiedAt)" +
+            string sql = "INSERT INTO BankUser (Id, UserId, CreatedAt, ModifiedAt)" +
                       $"VALUES (NULL, '{myBankUser.UserId}', '{myBankUser.CreatedAt}', '{myBankUser.ModifiedAt}')";
 
-            var databaseConnection = new SqlConnection(conn);
-            databaseConnection.Open();
+            SqlConnection connection = new SqlConnection(conn);
+            connection.Open();
 
-            var selectCommand = new SqlCommand(sql, databaseConnection);
+            var selectCommand = new SqlCommand(sql, connection);
             selectCommand.ExecuteNonQuery();
         }
 
@@ -179,16 +180,17 @@ namespace TheBankAPI.Controllers
         [HttpPut("{id}")]
         public void Put(int id, BankUser bankUserInput)
         {
-            var sql = "UPDATE BankUser SET UserId = @UserId, CreatedAt = @CreatedAt, ModifiedAt = @ModifiedAtWHERE id =" + id;
+            string sql =
+                "UPDATE BankUser SET UserId = @UserId, CreatedAt = @CreatedAt, ModifiedAt = @ModifiedAtWHERE id =" + id;
             SqlParameter[] p = new SqlParameter[3];
             p[0] = new SqlParameter("@UserId", bankUserInput.UserId);
             p[1] = new SqlParameter("@CreatedAt", bankUserInput.CreatedAt);
             p[2] = new SqlParameter("@ModifiedAt", bankUserInput.ModifiedAt);
 
-            var databaseConnection = new SqlConnection(conn);
-            databaseConnection.Open();
+            SqlConnection connection = new SqlConnection(conn);
+            connection.Open();
 
-            var selectCommand = new SqlCommand(sql, databaseConnection);
+            var selectCommand = new SqlCommand(sql, connection);
             selectCommand.ExecuteNonQuery();
 
         }
@@ -197,28 +199,28 @@ namespace TheBankAPI.Controllers
         [HttpDelete("{id}")]
         public void Delete(int id)
         {
-            var sql = "DELETE FROM BankUser where id =" + id;
+            string sql = "DELETE FROM BankUser where id =" + id;
 
-            var databaseConnection = new SqlConnection(conn);
-            databaseConnection.Open();
+            SqlConnection connection = new SqlConnection(conn);
+            connection.Open();
 
-            var selectCommand = new SqlCommand(sql, databaseConnection);
+            var selectCommand = new SqlCommand(sql, connection);
             selectCommand.ExecuteNonQuery();
 
         }
 
         //PUT api/<BankUserController>
         [HttpPut("withdrawl-money")]
-        public void Put(int Amount, id)
+        public void Put(int Amount, int id)
         {
             try
             {
-                var sql = "UPDATE Account SET Amount = Amount -" + Amount + " WHERE id =" + id;
+                string sql = "UPDATE Account SET Amount = Amount -" + Amount + " WHERE id =" + id;
 
-                var databaseConnection = new SqlConnection(conn);
-                databaseConnection.Open();
+                SqlConnection connection = new SqlConnection(conn);
+                connection.Open();
 
-                var selectCommand = new SqlCommand(sql, databaseConnection);
+                var selectCommand = new SqlCommand(sql, connection);
                 selectCommand.ExecuteNonQuery();
             }
             catch (Exception e)
@@ -229,42 +231,50 @@ namespace TheBankAPI.Controllers
 
         //POST api/<BankUserController>
         [HttpPost("InterestRate")]
-        public void Post(int Amount)
+        public int InterestRate(int Amount)
         {
-            return newAmount = Amount * 1.02;
+           // int calculatedAmount = Amount * 1.02;
+           int result = Convert.ToInt32(Amount * 1.02);
+           return result;
         }
 
         //POST api/<BankUserController>
-        [HttpPost("Loan")]
-        public void Post(int loanAmount)
+        [HttpPost("LoanFunc")]
+        public bool LoanFunc(int loanAmount, int id)
         {
+            Account account = new Account();
             List<int> AccountList = new List<int>();
 
-            var sql = "SELECT Amount FROM Account WHERE id =" + id;
+            string sql = "SELECT Amount FROM Account WHERE BankUserId =" + id;
+            //DataTable tbl = new DataTable();
 
-            var databaseConnection = new SqlConnection(conn);
-            databaseConnection.Open();
-            var selectCommand = new SqlCommand(sql, databaseConnection);
+            SqlConnection connection = new SqlConnection(conn);
+            connection.Open();
+            var selectCommand = new SqlCommand(sql, connection);
             var reader = selectCommand.ExecuteReader();
-            if (!reader.HasRows)
-            {
-                return AccountList;
-            }
-            while (reader.Read())
-            {
-                accountAmount = reader.GetInt32(0);
-                //AccountList.Add((reader.GetInt32(0));
-            }
-            return AccountList;
+            int accountAmount = reader.GetInt32(0);
 
-            calculatedAmount = loanAmount * 0.75; 
-            if (loanAmount > accountAmount)
+                //int accountAmount;
+
+            //foreach (var i in AccountList)
+            //{
+            //    accountAmount = i;
+            //}
+            //bool exceeds75;
+            //int calculatedAmount = loanAmount * 0.75;
+
+            if (loanAmount < accountAmount * 0.75)
             {
-                StatusCode(403);
+                //StatusCode(200);
+                //exceeds75 = false;
+                return false;
             }
             else
             {
-                StatusCode(200);
+                //exceeds75 = true;
+                //StatusCode(403);
+                return true;
             }
         }
+    }
 }
