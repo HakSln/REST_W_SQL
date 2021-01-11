@@ -14,12 +14,7 @@ namespace TheBankAPI.Controllers
     [ApiController]
     public class BankController : ControllerBase
     {
-        private static HttpClient client = new HttpClient();
-
-        private const string conn =
-            "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=BankDB;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
-
-        //static List<BankUser> BankUsers;
+        private const string conn = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=BankDB;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
         DateTime currentTime = DateTime.Now;
 
         // GET: api/<BankController>
@@ -80,13 +75,7 @@ namespace TheBankAPI.Controllers
             }
             else
             {
-                //List<string> data = new List<string>();
-                //data.Add(bankUser.Amount.ToString());
-                //data.Add(id.ToString());
-
-                //var response = client.PostAsync("InterestRateFunctionURL", bankUser.Amount);
                 int response = InterestRate(account.Amount);
-                
 
                 var sql = "UPDATE Account SET Amount = @Amount WHERE id =" + id;
                 SqlParameter[] p = new SqlParameter[0];
@@ -216,7 +205,6 @@ namespace TheBankAPI.Controllers
             try
             {
                 string sql = "UPDATE Account SET Amount = Amount -" + Amount + " WHERE id =" + id;
-
                 SqlConnection connection = new SqlConnection(conn);
                 connection.Open();
 
@@ -246,7 +234,6 @@ namespace TheBankAPI.Controllers
             List<int> AccountList = new List<int>();
 
             string sql = "SELECT Amount FROM Account WHERE BankUserId =" + id;
-            //DataTable tbl = new DataTable();
 
             SqlConnection connection = new SqlConnection(conn);
             connection.Open();
@@ -254,25 +241,12 @@ namespace TheBankAPI.Controllers
             var reader = selectCommand.ExecuteReader();
             int accountAmount = reader.GetInt32(0);
 
-                //int accountAmount;
-
-            //foreach (var i in AccountList)
-            //{
-            //    accountAmount = i;
-            //}
-            //bool exceeds75;
-            //int calculatedAmount = loanAmount * 0.75;
-
             if (loanAmount < accountAmount * 0.75)
             {
-                //StatusCode(200);
-                //exceeds75 = false;
                 return false;
             }
             else
             {
-                //exceeds75 = true;
-                //StatusCode(403);
                 return true;
             }
         }
